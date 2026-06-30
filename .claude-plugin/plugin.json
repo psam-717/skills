@@ -9,6 +9,9 @@
     "./granular-commits-pr",
     "./py-publish",
     "./security-auditor",
-    "./tdd-enforcer"
+    "./tdd-enforcer",
+    "./skills/software-development/feature-intake-and-plan.md",
+    "./skills/software-development/changelog-unreleased-workflow.md",
+    "./psamvault-mcp.md"
   ]
 }
