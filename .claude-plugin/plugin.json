@@ -1,0 +1,16 @@
+{
+  "name": "psam-717-skills",
+  "skills": [
+    "./code-breakdown",
+    "./code-review-debugger",
+    "./db-schema",
+    "./docs-generator",
+    "./git-auto-committer",
+    "./granular-commits-pr",
+    "./py-publish",
+    "./security-auditor",
+    "./tdd-enforcer",
+    "./changelog-unreleased-workflow",
+    "./feature-intake-and-plan"
+  ]
+}
