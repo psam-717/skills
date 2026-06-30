@@ -10,7 +10,7 @@
     "./py-publish",
     "./security-auditor",
     "./tdd-enforcer",
-    "./skills/software-development/feature-intake-and-plan.md",
-    "./skills/software-development/changelog-unreleased-workflow.md"
+    "./skills/software-development/changelog-unreleased-workflow",
+    "./skills/software-development/feature-intake-and-plan"
   ]
 }
