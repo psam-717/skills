@@ -11,7 +11,6 @@
     "./security-auditor",
     "./tdd-enforcer",
     "./skills/software-development/feature-intake-and-plan.md",
-    "./skills/software-development/changelog-unreleased-workflow.md",
-    "./psamvault-mcp.md"
+    "./skills/software-development/changelog-unreleased-workflow.md"
   ]
 }
