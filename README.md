@@ -14,16 +14,16 @@ This repo is published on the [skills.sh](https://skills.sh) registry. Install a
 npx skills add psam-717/skills --skill <skill-name>
 ```
 
-For example, to install just the **tdd-enforcer**:
+For example, to install just the **master-reviewer**:
 
 ```bash
-npx skills add psam-717/skills --skill tdd-enforcer
+npx skills add psam-717/skills --skill master-reviewer
 ```
 
 ### Install multiple specific skills
 
 ```bash
-npx skills add psam-717/skills --skill tdd-enforcer --skill py-publish
+npx skills add psam-717/skills --skill master-reviewer --skill tdd-enforcer
 ```
 
 ### Install all skills
@@ -43,13 +43,13 @@ Supported agents include Claude Code, Cursor, Codex, GitHub Copilot, Gemini CLI,
 ### Install globally (available across all projects)
 
 ```bash
-npx skills add psam-717/skills --global --skill tdd-enforcer
+npx skills add psam-717/skills --global --skill master-reviewer
 ```
 
 ### Non-interactive (CI/CD friendly)
 
 ```bash
-npx skills add psam-717/skills --skill tdd-enforcer -g -a claude-code -y
+npx skills add psam-717/skills --skill master-reviewer -g -a claude-code -y
 ```
 
 ### List all available skills without installing
@@ -69,6 +69,7 @@ npx skills add psam-717/skills --list
 | **code-breakdown** | Thorough, beginner-friendly explanation of an entire codebase. Reads every file and walks through structure, data flow, and key code. |
 | **code-review-debugger** | Full codebase review and debugging session. Finds bugs, security issues, logic errors, and quality problems — presents a report for approval before touching anything. |
 | **security-auditor** | Proactive vulnerability audit. Scans for injection, auth flaws, secrets exposure, dependency risks, and data validation gaps. Prioritized report → approved surgical fixes. |
+| **master-reviewer** | Three-round master review loop on an open GitHub PR: review → wait for “tackled” → verify → deeper pass. Uses the agent’s built-in review skill when available; ends with merge go-ahead or blockers. |
 
 ### 🧪 Testing
 
@@ -107,13 +108,14 @@ npx skills add psam-717/skills --list
 
 ## Usage
 
-These skills are designed for AI coding agents (Hermes, Claude Code, Codex, Cursor, Goose, etc.). Each skill is a self-contained `SKILL.md` with a YAML frontmatter description and numbered workflow phases.
+These skills are designed for AI coding agents (Hermes, Claude Code, Codex, Cursor, Goose, Grok, etc.). Each skill is a self-contained `SKILL.md` with a YAML frontmatter description and numbered workflow phases.
 
-To use a skill, load it into your agent and say what you need:
+To use a skill after installing (or after cloning this repo into your agent’s skills directory), load it and say what you need:
 
-> "Run `security-auditor` on this project"
-> "`tdd-enforcer` — write tests for the auth module"
-> "`py-publish` — bump to v1.2.0 and release"
+> "Run `security-auditor` on this project"  
+> "`tdd-enforcer` — write tests for the auth module"  
+> "`py-publish` — bump to v1.2.0 and release"  
+> "`/master-reviewer` on PR #8"
 
 ## Structure
 
@@ -130,6 +132,7 @@ skills/
 ├── feature-intake-and-plan/SKILL.md
 ├── git-auto-committer/SKILL.md
 ├── granular-commits-pr/SKILL.md
+├── master-reviewer/SKILL.md
 ├── py-publish/SKILL.md
 ├── security-auditor/SKILL.md
 └── tdd-enforcer/SKILL.md
@@ -157,4 +160,4 @@ npx skills remove tdd-enforcer
 
 ## License
 
-Private collection — personal use.
+Private collection — personal use unless you open the repo to collaborators.
