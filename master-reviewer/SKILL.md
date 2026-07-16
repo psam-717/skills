@@ -6,9 +6,11 @@ description: >-
   deepen the next pass. After the third pass is verified, declare merge-ready
   or not. Invokes the agent's built-in /review (or equivalent) skill when
   available; otherwise reviews for bugs, security, and effectiveness with
-  actionable fix guidance on every finding. Use when the user runs
-  /master-reviewer, asks for a "master review", "three-round PR review",
-  "multi-pass PR review", or "review this PR thoroughly three times".
+  actionable fix guidance on every finding. Always auto-submits PR reviews
+  (never leaves PENDING) and posts verification outcomes both in chat and on
+  the PR. Use when the user runs /master-reviewer, asks for a "master review",
+  "three-round PR review", "multi-pass PR review", or "review this PR
+  thoroughly three times".
 argument-hint: "<pr-number-or-url>"
 ---
 
@@ -23,9 +25,9 @@ gate.
 ## Goals
 
 1. Conduct **exactly three** thorough review rounds on an **open** GitHub PR.
-2. After each review is **submitted** (or posted in the way this agent usually
-   posts PR reviews), **stop and wait** for the user to say the review has been
-   tackled (or equivalent).
+2. After each review is **submitted and published on the PR** (never left
+   PENDING for the user to submit manually), **stop and wait** for the user to
+   say the review has been tackled (or equivalent).
 3. Before rounds **2** and **3**, **verify** that previously highlighted issues
    were addressed; only then start the next full review.
 4. After the user reports that **round 3** is tackled, **verify again** and
@@ -34,6 +36,10 @@ gate.
    fixes the PR can implement a strong solution—not just "please fix this".
 6. Each successive review is **more detailed and thorough** than the last so
    the PR ends neat, safe, and maintainable.
+7. **Dual-channel outcomes:** every full-review summary and every verification
+   outcome must appear **in chat** and **on the GitHub PR** as a submitted
+   review (and residual fix guidance when anything is still open), so anyone
+   working from the PR alone knows exactly what to do next.
 
 ## Invocation
 
@@ -66,10 +72,68 @@ MASTER_REVIEW_STATE
 - Last head SHA: <sha>
 - Open issues from last review: <count> (bugs / suggestions / nits)
 - Outstanding prior issues: <short bullets or "none">
+- Last published review id / url: <if any>
 ```
 
 Do **not** invent a separate on-disk protocol unless the user asks; conversation
 state plus GitHub PR head SHA and prior review comments are enough.
+
+## Auto-submit reviews (mandatory)
+
+**Never leave a review in PENDING for the user to submit manually.** After every
+inspection that produces a GitHub PR review (full round, verification, or merge
+gate), the review must be **published immediately**.
+
+### How to publish
+
+Use `event: "COMMENT"` for master-reviewer reviews unless the user explicitly
+asks for `REQUEST_CHANGES`. Do **not** use `APPROVE` for rounds 1–3 findings
+reviews. Only the final merge-gate message may recommend merge in prose; it
+still posts as `COMMENT` (do not auto-approve unless the user explicitly asks).
+
+**Preferred create path** (single shot, already submitted):
+
+```bash
+gh api "repos/${owner}/${repo}/pulls/${pr_number}/reviews" -X POST --input payload.json
+```
+
+Payload must include:
+
+```json
+{
+  "commit_id": "<head_sha>",
+  "body": "<markdown summary>",
+  "event": "COMMENT",
+  "comments": [ /* optional inline comments */ ]
+}
+```
+
+**If a helper skill creates a PENDING review** (no `event` field — e.g. the
+bundled `/review` skill):
+
+1. Capture the returned review `id` from the create response.
+2. Immediately submit it:
+
+```bash
+gh api "repos/${owner}/${repo}/pulls/${pr_number}/reviews/${review_id}/events" \
+  -X POST -f event=COMMENT
+```
+
+3. Confirm the review `state` is not `PENDING` (expect `COMMENTED` or equivalent).
+4. If submit fails, report the error, keep local notes, and retry once or post a
+   fresh review with `event: "COMMENT"` so the PR is not left without a public
+   trail.
+
+**Override for built-in review skill:** When orchestrating `/review` (or similar)
+under master-reviewer, treat its "user submits PENDING" rule as **superseded**.
+Master-reviewer always auto-submits. Tell the user the review is already live on
+the PR; do not ask them to click "Submit review".
+
+After publish, include in chat:
+
+- Review id
+- Link to the PR Conversation or review (`html_url` from the API is fine)
+- That the review is **already submitted** (visible to collaborators)
 
 ## Review engine selection (required)
 
@@ -81,12 +145,13 @@ If this agent has a PR review skill (commonly `/review`, `review`, or a
 bundled "review" skill that posts GitHub PR reviews):
 
 1. **Read and follow that skill** for each full review pass (load its
-   `SKILL.md` and execute its PR mode against the target PR).
+   `SKILL.md` and execute its PR mode against the target PR), **except** for
+   submit behavior (see Auto-submit above).
 2. Pass framing into that skill's flow so the pass depth and suggestion rules
    below still apply (e.g. include them in the reviewer prompt / task context
    when the skill allows).
-3. Prefer whatever post/submit behavior the user already configured for that
-   skill (e.g. submit as `COMMENT` if they asked reviews to be submitted).
+3. After the skill posts (PENDING or otherwise), **auto-submit** so the review
+   is published with `event: COMMENT`. Do not wait for manual UI submit.
 
 ### B) Fallback — no review skill available
 
@@ -101,10 +166,10 @@ If no review skill exists:
       defaults, multi-tenant leaks)
    3. **Effectiveness & efficiency** (wrong abstraction, N+1, full scans,
       missing validation, operability, clarity)
-4. Post findings as a GitHub PR review via `gh api` when authenticated
-   (`event: COMMENT` unless the user specifies otherwise), with actionable
-   suggestions on every item. If posting is impossible, write a clear
-   markdown report in chat with the same structure.
+4. Post findings as a GitHub PR review via `gh api` when authenticated with
+   **`event: "COMMENT"`** (auto-submitted), with actionable suggestions on
+   every item. If posting is impossible, write a clear markdown report in chat
+   with the same structure and note that the PR could not be updated.
 
 ## Round depth ladder (mandatory)
 
@@ -117,9 +182,9 @@ same shallow pass.
 | 2 | **Hardening** | Re-verify round-1 fixes; dig into edge cases, error paths, multi-tenant isolation, API contracts, race/consistency, incomplete validation, deploy/config footguns related to the change. |
 | 3 | **Polish & merge-bar** | Re-verify all prior fixes; maintainability, naming consistency with codebase, tests/docs gaps that risk regression, operability (logs, health, env), dead paths, nits that still matter for a clean merge. Be stricter and more thorough than round 2. |
 
-If a round finds **zero issues**, still post/report a short summary stating that
-the round is clean at that depth, then wait for the user before continuing
-(except after final verify—see merge gate).
+If a round finds **zero issues**, still post/report a short **submitted** summary
+stating that the round is clean at that depth, then wait for the user before
+continuing (except after final verify—see merge gate).
 
 ## Suggestion quality (every finding)
 
@@ -155,13 +220,16 @@ pick review engine (A or B)
 round = 1
 while round <= 3:
     run full review for this round (depth ladder)
-    submit/post review; report summary to user
+    publish review on PR with event COMMENT (auto-submit; never leave PENDING)
+    report summary to user in chat + link to live review
     set phase = wait_user
     STOP and wait for user signal that the round was tackled
     on user "tackled" / "fixed" / "addressed" / similar:
         run VERIFY for issues from the last completed round
+        publish verification outcomes on the PR (submitted COMMENT review)
+        report the same verification table + residual guidance in chat
         if verify finds prior issues still open:
-            report remaining gaps + fix guidance
+            residual gaps + best-fix must appear on PR and in chat
             stay in wait_user for this round (do not advance)
             continue waiting
         if round < 3:
@@ -169,15 +237,16 @@ while round <= 3:
             run next full review
         else:
             run MERGE GATE (final verification)
+            publish merge-gate outcome on PR + chat
             end
 ```
 
 ### User wait rules
 
-- After submitting a round, clearly tell the user:
+- After publishing a round, clearly tell the user:
   - Round number completed
   - Issue counts by severity
-  - Link to the review if posted
+  - Link to the **already submitted** review
   - **Exact next step:** e.g. "When you have addressed these findings, reply
     that the review has been tackled (e.g. `review tackled` or
     `round 1 done`)."
@@ -186,10 +255,12 @@ while round <= 3:
   re-check).
 - Phrases that count as go-ahead to verify: "tackled", "addressed", "fixed",
   "handled", "done", "ready for next", "verify", etc. If ambiguous, ask once.
+- Do **not** ask the user to submit a PENDING review in the GitHub UI.
 
 ### Verify phase (before rounds 2 and 3, and after round 3)
 
-Verification is **not** a full new review. It is a targeted check:
+Verification is **not** a full new depth review. It is a targeted check of
+prior findings. Outcomes must be dual-channel: **chat + PR**.
 
 1. Refresh PR head (`gh pr view` → `headRefOid`). Note if SHA changed.
 2. Collect prior open findings from the last review (chat summary + GitHub
@@ -199,13 +270,61 @@ Verification is **not** a full new review. It is a targeted check:
    - **Partially fixed** (what remains)
    - **Still open**
    - **Regressed / new break from the fix**
-4. Report a verification table to the user.
-5. **Advance only if** there are no remaining **bugs** from the prior round
+4. Report a verification table to the user **in chat**.
+5. **Also publish a submitted PR review** (`event: "COMMENT"`) so anyone
+   working from the PR can act without reading chat. See
+   [Verification review body](#verification-review-body-template) below.
+6. **Advance only if** there are no remaining **bugs** from the prior round
    (and no partials that still break correctness/security). Pure nits may be
    carried into the next deeper round if the user wants speed—but default is:
    **prior bugs must be fixed before the next full review.**
-6. If still broken, do not start the next full review; wait again after listing
-   what remains and refreshed best-fix guidance.
+7. If still broken, do not start the next full review; wait again after listing
+   what remains and refreshed best-fix guidance **on the PR and in chat**.
+
+#### Verification review body (template)
+
+Post one top-level review body (inline comments optional if a residual maps
+cleanly to a diff line). Title the review clearly, e.g.
+`Master review — Round N verification`.
+
+```markdown
+## Master review — Round <N> verification
+
+**PR head:** `<sha>`
+**Result:** PASS (advance) | FAIL (do not advance) | PASS WITH CARRY (nits only)
+
+### Checklist
+
+| # | Severity | Finding (short) | Verdict | Notes |
+|---|----------|-----------------|---------|-------|
+| 1 | bug | … | Fixed / Partially fixed / Still open / Regressed | … |
+
+### Still open / partial — exact next actions
+
+For each non-Fixed item, repeat full guidance:
+
+**[severity] Title**
+- **What remains:** …
+- **Why it matters:** …
+- **Best fix:** …
+- **Avoid:** …
+- **Done when:** …
+
+### Fixed this pass
+
+- Short bullets of what was confirmed fixed (optional but helpful).
+
+### Orchestrator decision
+
+- Advancing to Round <N+1> | Waiting for remaining bug fixes | Merge gate: READY / NOT READY
+```
+
+Anyone reading only the PR must be able to implement remaining work from this
+body alone (no dependency on chat history).
+
+Optional: for residual issues whose `(path, line)` is still on the current
+diff, add inline comments with the same best-fix block so they show on Files
+changed.
 
 ### Full review phase (rounds 1–3)
 
@@ -216,8 +335,9 @@ Verification is **not** a full new review. It is a targeted check:
    - List of prior findings and verify results
    - Instruction: do not re-open items marked Fixed unless still broken;
      hunt for **new** issues at this deeper level and any regressions
-4. Ensure the review is submitted/posted per engine rules.
-5. Summarize in chat: counts, top issues, best-fix highlights, wait prompt.
+4. Ensure the review is **published** with `event: COMMENT` (auto-submit).
+5. Summarize in chat: counts, top issues, best-fix highlights, live review
+   link, wait prompt. Do not instruct manual GitHub submit.
 
 ### Merge gate (after round 3 is tackled + verified)
 
@@ -231,13 +351,15 @@ Verification is **not** a full new review. It is a targeted check:
    - **NOT MERGE READY** — list blockers with best-fix guidance; stay in
      wait_user until the user tackles again, then re-run merge gate only
      (no fourth full review unless the user asks to restart).
+4. Publish that decision as a **submitted** `COMMENT` review on the PR (same
+   dual-channel rule) in addition to the chat summary.
 
 ## Resume behavior
 
 If the user returns mid-loop (new message after wait):
 
 1. Restate `MASTER_REVIEW_STATE`.
-2. If they signal tackled → verify → advance as above.
+2. If they signal tackled → verify → publish verification on PR → advance as above.
 3. If they ask "status" → report state without starting a new review.
 4. If they ask to skip a round → refuse by default; only skip if they
    explicitly override ("skip to merge gate" / "skip round 2").
@@ -251,15 +373,19 @@ If the user returns mid-loop (new message after wait):
 - Never modify PR code yourself unless the user separately asks you to fix.
 - Never approve merge after round 1 or 2; only the **merge gate** after
   round 3 verification may say **Go ahead and merge.**
+- Always dual-channel: chat summary + submitted PR review for full rounds,
+  verifications, and merge gate.
+- Always auto-submit; never leave PENDING reviews for manual UI submit.
 
 ## Quick checklist (orchestrator)
 
 - [ ] PR open and identified
 - [ ] Review engine selected (built-in skill preferred)
-- [ ] Round 1 full review submitted + user wait
-- [ ] User tackled → verify → only then Round 2
-- [ ] Round 2 full review (harder) submitted + user wait
-- [ ] User tackled → verify → only then Round 3
-- [ ] Round 3 full review (strictest) submitted + user wait
-- [ ] User tackled → final verify → **merge go-ahead or blockers**
+- [ ] Round 1 full review **published** (COMMENT, not PENDING) + chat summary + user wait
+- [ ] User tackled → verify → **publish verification on PR** + chat → only then Round 2 if bugs clear
+- [ ] Round 2 full review **published** + user wait
+- [ ] User tackled → verify → **publish verification on PR** + chat → only then Round 3 if bugs clear
+- [ ] Round 3 full review **published** + user wait
+- [ ] User tackled → final verify → **publish merge gate on PR** + chat → **merge go-ahead or blockers**
 - [ ] Every finding carried a best-fix / avoid / done-when style suggestion
+- [ ] No review left PENDING; no "please submit in the UI" instructions
