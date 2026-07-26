@@ -79,6 +79,24 @@ git checkout -b feat/v0.4.0-browser-refactor
 git push origin feat/v0.4.0-browser-refactor
 ```
 
+### Step 4.5: Check open PRs before creating (critical)
+
+**Before creating a new PR, always check which PRs are already open on this repo**
+to determine the correct `--base` target. Do NOT assume a branch you worked on
+before is still open — older PRs may have been merged already.
+
+```bash
+gh pr list --json number,headRefName,baseRefName,state,title --limit 10
+```
+
+Handle each scenario:
+
+| Scenario | What base to use |
+|---|---|
+| No open PRs | `--base main` (everything goes to main) |
+| Open PRs exist | Target `main` unless your feature explicitly builds on another open PR. If so, explain why to the user first. |
+| Your old PR was merged | The old feature branch is already in `main`. Base your new branch on `main` and target `main`. |
+
 ### Step 5: Open the PR
 
 Use `gh pr create` with a structured body:
