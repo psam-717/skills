@@ -12,6 +12,7 @@
     "./security-auditor",
     "./tdd-enforcer",
     "./changelog-unreleased-workflow",
-    "./feature-intake-and-plan"
+    "./feature-intake-and-plan",
+    "./web-vulnerability-analysis"
   ]
 }

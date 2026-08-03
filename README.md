@@ -69,6 +69,7 @@ npx skills add psam-717/skills --list
 | **code-breakdown** | Thorough, beginner-friendly explanation of an entire codebase. Reads every file and walks through structure, data flow, and key code. |
 | **code-review-debugger** | Full codebase review and debugging session. Finds bugs, security issues, logic errors, and quality problems — presents a report for approval before touching anything. |
 | **security-auditor** | Proactive vulnerability audit. Scans for injection, auth flaws, secrets exposure, dependency risks, and data validation gaps. Prioritized report → approved surgical fixes. |
+| **web-vulnerability-analysis** | Paste a website URL → full security analysis. Detects the stack, discovers API endpoints, tests for missing auth & CORS flaws, extracts exposed PII/financial data, and produces a severity-rated vulnerability report (read-only reconnaissance). |
 | **master-reviewer** | Three-round master review loop on an open GitHub PR: review → wait for “tackled” → verify → deeper pass. Uses the agent’s built-in review skill when available; ends with merge go-ahead or blockers. |
 
 ### 🧪 Testing
@@ -115,7 +116,8 @@ To use a skill after installing (or after cloning this repo into your agent’s 
 > "Run `security-auditor` on this project"  
 > "`tdd-enforcer` — write tests for the auth module"  
 > "`py-publish` — bump to v1.2.0 and release"  
-> "`/master-reviewer` on PR #8"
+> "`/master-reviewer` on PR #8"  
+> "Analyze this URL for vulnerabilities: https://example.com"
 
 ## Structure
 
@@ -135,7 +137,9 @@ skills/
 ├── master-reviewer/SKILL.md
 ├── py-publish/SKILL.md
 ├── security-auditor/SKILL.md
-└── tdd-enforcer/SKILL.md
+├── tdd-enforcer/SKILL.md
+└── web-vulnerability-analysis/SKILL.md
+    └── references/easevote-case-study.md
 ```
 
 ## Updating
