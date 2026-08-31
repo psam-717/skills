@@ -13,6 +13,7 @@
     "./tdd-enforcer",
     "./changelog-unreleased-workflow",
     "./feature-intake-and-plan",
+    "./feature-intake-plan-loop",
     "./web-vulnerability-analysis"
   ]
 }

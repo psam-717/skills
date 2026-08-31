@@ -103,6 +103,7 @@ npx skills add psam-717/skills --list
 | Skill | What it does |
 |---|---|
 | **feature-intake-and-plan** | Guides new feature development from idea to build-ready plan. Structures requirements, identifies constraints, breaks work into actionable tasks, and produces a spec + implementation plan. |
+| **feature-intake-plan-loop** | Agentic loop around feature-intake-and-plan: autonomously iterates Sense → Plan → Act → Evaluate cycles until the plan converges on a build-ready PLAN.md, then hands off to execution. |
 | **changelog-unreleased-workflow** | Manages changelog entries for unreleased work. Tracks in-progress changes, formats conventional commit logs, and prepares release notes. |
 
 ---
