@@ -8,7 +8,7 @@ description: >-
   -> PyPI + GitHub release. Before the version bump, loads the
   granular-commits-pr skill to commit codebase changes individually.
   Also covers the post-release backup of the py-publish skill itself to the
-  skills backup repo at C:\Users\USER\.copilot\skills (github.com/psam-717/skills).
+  skills backup repo (github.com/psam-717/skills).
 version: 1.1.0
 ---
 
@@ -574,9 +574,9 @@ When the package is ready for public use, un-yank the latest version:
 ## Common Pitfalls
 
 ### 1. Backup skill as wrong file format
-When pushing updated skills to the backup repo (`C:\Users\USER\.copilot\skills`,
-`github.com/psam-717/skills`), a skill that lives in a folder (e.g.
-`py-publish/SKILL.md`) must NOT be copied as a standalone `.md` file at the
-repo root (e.g. `py-publish.md`). Always update the existing folder's
-`SKILL.md` file instead. See `references/skills-backup-workflow.md` for
-commands and recovery steps.
+When pushing updated skills to the backup repo (`github.com/psam-717/skills`
+— clone it locally if no checkout exists yet, e.g.
+`git clone https://github.com/psam-717/skills.git`), a skill that lives in a
+folder (e.g. `py-publish/SKILL.md`) must NOT be copied as a standalone `.md`
+file at the repo root (e.g. `py-publish.md`). Always update the existing
+folder's `SKILL.md` file instead.
