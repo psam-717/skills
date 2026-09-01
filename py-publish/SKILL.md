@@ -9,7 +9,7 @@ description: >-
   granular-commits-pr skill to commit codebase changes individually.
   Also covers the post-release backup of the py-publish skill itself to the
   skills backup repo (github.com/psam-717/skills).
-version: 1.1.0
+version: 1.2.0
 ---
 
 # Python Package Publisher
@@ -31,8 +31,8 @@ no `.pypirc` file on disk), see `references/publishing-with-psamvault-credential
 
 For a project-specific release workflow example (psamvault CLI), including
 the pre-release checklist, security audit flow, dashboard verification, and
-GitHub main-push rescue, see the `references/psamvault-*` files in this
-skill's references directory.
+GitHub main-push rescue, see the private `psamvault-release` skill
+(github.com/psam-717/private-skills).
 
 ## Phase 0 — Pre-flight Checks
 
@@ -342,12 +342,10 @@ Only proceed after the user signals approval (e.g. "ship it", "ok", "looks good"
 
 ### Credential strategy
 
-Same two options as Phase 3. If using psamvault vault, the script in
-`references/publishing-with-psamvault-credentials.md` accepts a CLI arg:
-
-```bash
-python scripts/publish.py pypi   # for real PyPI
-```
+Same two options as Phase 3. If using psamvault vault, fetch the token with
+`psamvault ak-get pypi` and inject it via the env-file method described in
+`references/publishing-with-psamvault-credentials.md` (the psamvault-cli
+repo additionally ships `scripts/release.py` for its GitHub release step):
 
 ### Classic `.pypirc` upload
 
