@@ -80,8 +80,13 @@ Steps:
      --base <user-branch-name> \
      --head feat/changelog-pr-<N>
    ```
-8. **Tell the user:** both PRs are ready. User merges code PR first, then
-   changelog PR (or squash the changelog into the same PR if user prefers).
+8. **Tell the user:** both PRs are ready. **Merge order matters: the changelog
+   PR must merge FIRST (into the code branch), then the code PR merges to
+   main** — the changelog commits ride into main as part of the code branch.
+   Merging the code PR first strands the changelog on the now-closed feature
+   branch (GitHub merges the changelog PR into its base = the code branch,
+   which no longer flows to main). If the code PR is already merged, use
+   Flow B (catch-up targeting main).
 
 ### Flow B — Code already merged, catch up
 
@@ -176,3 +181,8 @@ again. Read the file first.
 4. **Use `--ff-only`** when pulling to catch divergence early
 5. **Read the full diff** — don't guess what changed from the PR title alone
 6. **Deduplicate** — check existing entries in `CHANGELOG.unreleased.md` before adding
+7. **Merge order strands changelogs** (2026-09-06, twice): a changelog PR whose
+   base is the code branch merges INTO that branch — if the code branch already
+   merged to main, the entries never reach main. Verify with `grep` for the
+   section heading in the file on main after merges, not by PR state. Catch up
+   via Flow B.
