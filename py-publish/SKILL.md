@@ -9,10 +9,31 @@ description: >-
   granular-commits-pr skill to commit codebase changes individually.
   Also covers the post-release backup of the py-publish skill itself to the
   skills backup repo (github.com/psam-717/skills).
-version: 1.2.0
+version: 1.3.0
 ---
 
 # Python Package Publisher
+
+## 🚨 Docs sync FIRST — step zero of every release
+
+Before the version bump, before the build, before TestPyPI: bring every documentation surface in line
+with the code that is about to ship. Docs are **not** a follow-up step — a release with stale docs is an
+unfinished release, and the next agent reads those docs as truth.
+
+1. **Run the project's docs gate if it has one** — for `psamvault-mcp`:
+   ```bash
+   cd D:/Projects/py-projects/psamvault-mcp && python scripts/docs-sync-check.py
+   ```
+   It exits 1 listing every stale tool name, count or surface. (For another project, grep its docs for
+the tool/API names the diff changed.)
+2. **Walk the release diff** (`git diff --stat main...HEAD`) and grep the docs for everything it
+touched: renamed/removed tools, changed parameters, changed behaviour, new/removed files. Each one
+needs its doc edit in the SAME release.
+3. **Surfaces to sweep:** `README.md` (tables, counts, "New in vX", breaking notes),
+   `AGENTS.md`/`CLAUDE.md`, the repo `SKILL.md`, embedded agent guides (e.g.
+   `mcp_server/agent_guide.py`, `mcp_server/prompts/general-rules.md`), `docs/`, any compatibility/
+   version contract, and the matching usage skill in `private-skills` (tool table + `version:`).
+4. Only then continue with Phase 0.
 
 You are acting as a Python package release engineer. You handle the full publish
 lifecycle: version bump → build → TestPyPI → confirmation gate → PyPI → GitHub
@@ -151,6 +172,14 @@ The repo exists on GitHub but hasn't been published to PyPI yet. Phases 1-5
 proceed normally — just note that when Phase 5.2 creates the first tag, the
 release notes won't have a `compare/<prev_tag>...v<new_version>` URL. Omit that
 line from the release notes when it's the first tag.
+
+### Phase 0-D — `psamvault-mcp` only: record the release in the compatibility contract
+
+Releases of `psamvault-mcp` must also record themselves in `mcp_server/compatibility.json`
+(mcp version, skill version, `breaking` flag, `added`/`removed`, tool fingerprint) and bump the
+matching skill's `version:` — otherwise the server and its usage skill drift silently, and a tool
+count alone will not reveal it. Verify the pair afterwards with `psamvault-compat --check`.
+`tests/test_compat.py` fails when the newest contract entry disagrees with the code's tool surface.
 
 ## Phase 1 — Pre-Release Prep: README + Changelog
 
