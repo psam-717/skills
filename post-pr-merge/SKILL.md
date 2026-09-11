@@ -1,7 +1,7 @@
 ---
 name: post-pr-merge
 description: "Verify any merged PR end-to-end across projects."
-version: 1.0.0
+version: 1.1.0
 author: Psam
 license: MIT
 ---
@@ -100,6 +100,13 @@ git push origin --delete <feature> <changelog-branch>
 ```
 
 - Delete merged branches local AND remote (only after server-side MERGED confirmed).
+- **Never delete a branch on a spoken "PR merged".** Ask GitHub for the branch's own state first:
+  a deleted head branch makes GitHub **CLOSE** the PR (recovery = restore the branch from its commit
+  and `gh pr reopen <N>`), which is silent and easy to miss. Prefer the script
+  `HERMES_HOME/scripts/prune-merged-branches.py [repo...] [--dry-run]`: it deletes only branches whose
+  tip is already an ancestor of `origin/main` **and** for which `gh` reports a MERGED PR with no OPEN
+  one — everything else is reported and left alone. (Lesson, 2026-09-11: a branch was deleted on the
+  strength of a spoken "merged" while the PR was still OPEN, closing a mergeable PR.)
 - Confirm the changelog entries landed; if not, run the catch-up flow (changelog-unreleased-workflow Flow B). **Verify by grepping the section heading in the file on main** — "changelog PR merged" is NOT proof (a changelog PR based on the code branch merges into that branch; if the code branch already merged to main, the entries strand).
 - If the merge was the second PR of a pair (code then changelog), verify BOTH are merged and the content is actually on main before cleanup.
 
