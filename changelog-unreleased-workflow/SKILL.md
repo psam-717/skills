@@ -5,13 +5,13 @@ description: >-
   with code changes, read the PR diff, write entries to the unreleased file,
   and open a separate PR for the changelog update so it merges cleanly alongside
   the code changes.
-version: 1.0.0
+version: 1.1.0
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [psamvault-cli, changelog, git, github, pr-workflow]
+    tags: [psamvault-cli, psamvault-mcp, changelog, git, github, pr-workflow]
     related_skills: [psamvault-release, granular-commits-pr, github-pr-workflow]
 ---
 
@@ -29,9 +29,14 @@ separate PR**, never pushed directly to main.
 
 ## Repository
 
-- `psamvault-cli` at `/root/psamvault-cli`
-- Unreleased file: `CHANGELOG.unreleased.md`
-- Released changelog: `changelog.py` (versioned dict format)
+- `psamvault-cli` at `D:\Projects\py-projects\psamvault-cli`
+  - Unreleased file: `CHANGELOG.unreleased.md`
+  - Released changelog: `changelog.py` (versioned dict format, rendered by the CLI)
+- `psamvault-mcp` at `D:\Projects\py-projects\psamvault-mcp`
+  - Unreleased file: `CHANGELOG.unreleased.md`
+  - Released changelog: `CHANGELOG.md` (markdown, newest first)
+  - Gated: `scripts/docs-sync-check.py` fails when the newest `CHANGELOG.md` section is not the release
+    `mcp_server/compatibility.json` calls newest, so the roll-over cannot be forgotten at release time
 
 ## The problem this solves
 
