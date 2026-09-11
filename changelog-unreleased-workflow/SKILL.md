@@ -29,9 +29,14 @@ separate PR**, never pushed directly to main.
 
 ## Repository
 
-- `psamvault-cli` at `/root/psamvault-cli`
-- Unreleased file: `CHANGELOG.unreleased.md`
-- Released changelog: `changelog.py` (versioned dict format)
+- `psamvault-cli` at `D:\Projects\py-projects\psamvault-cli`
+  - Unreleased file: `CHANGELOG.unreleased.md`
+  - Released changelog: `changelog.py` (versioned dict format, rendered by the CLI)
+- `psamvault-mcp` at `D:\Projects\py-projects\psamvault-mcp`
+  - Unreleased file: `CHANGELOG.unreleased.md`
+  - Released changelog: `CHANGELOG.md` (markdown, newest first)
+  - Gated: `scripts/docs-sync-check.py` fails when the newest `CHANGELOG.md` section is not the release
+    `mcp_server/compatibility.json` calls newest, so the roll-over cannot be forgotten at release time
 
 ## The problem this solves
 
