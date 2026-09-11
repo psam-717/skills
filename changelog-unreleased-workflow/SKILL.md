@@ -5,13 +5,13 @@ description: >-
   with code changes, read the PR diff, write entries to the unreleased file,
   and open a separate PR for the changelog update so it merges cleanly alongside
   the code changes.
-version: 1.0.0
+version: 1.1.0
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [psamvault-cli, changelog, git, github, pr-workflow]
+    tags: [psamvault-cli, psamvault-mcp, changelog, git, github, pr-workflow]
     related_skills: [psamvault-release, granular-commits-pr, github-pr-workflow]
 ---
 
