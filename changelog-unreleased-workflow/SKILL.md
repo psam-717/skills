@@ -5,7 +5,7 @@ description: >-
   with code changes, read the PR diff, write entries to the unreleased file,
   and open a separate PR for the changelog update so it merges cleanly alongside
   the code changes.
-version: 1.1.0
+version: 1.2.0
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -191,3 +191,17 @@ again. Read the file first.
    merged to main, the entries never reach main. Verify with `grep` for the
    section heading in the file on main after merges, not by PR state. Catch up
    via Flow B.
+8. **The mirror case: a CODE PR stacked on a changelog/docs branch strands the CODE**
+   (2026-09-11). A feature PR was based on the docs branch that introduced
+   `CHANGELOG.unreleased.md`; the docs PR merged to main first, then the feature PR
+   merged into its base branch instead — main never got the feature, while BOTH PRs
+   read as `MERGED` and every local check was green. Two habits prevent it:
+   - **The moment the first PR of a stack merges, delete its branch** (local + remote).
+     GitHub then retargets the still-open PRs to main; leaving it alive is what makes
+     the second merge land on the dead branch.
+   - **Before saying "merge these", check every PR's base** —
+     `gh pr view <N> --json number,baseRefName` — and after each merge prove the content
+     is on main with `git cat-file -e origin/main:<path>` (or `git log origin/main..origin/<branch>`),
+     never with the PR's state alone.
+   Recovery: open a catch-up PR from the stale base branch to main; its diff is only the
+   stranded commits.
