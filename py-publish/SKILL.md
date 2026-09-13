@@ -14,6 +14,17 @@ version: 1.3.0
 
 # Python Package Publisher
 
+## 🚫 Golden rule — verify in a sandbox, never over the installed copy
+
+A test build (TestPyPI or a local wheel) is **never** installed over the user's installed package. No
+`pip install --force-reinstall`, no `pipx install --force` from the test index, no `uv tool install` that
+replaces the existing entry point. Verification happens in an isolated venv at
+`~/.sandbox/<package>/<version>/`, and the installed copy keeps working the whole time.
+
+Sandbox lifecycle, the three verification levels (L1 mechanical · L2 agent-level · L3 raw protocol), the
+tool-coverage gate and the Windows invocation rules live in the `release-sandbox-verification` skill —
+load it before verifying anything.
+
 ## 🚨 Docs sync FIRST — step zero of every release
 
 Before the version bump, before the build, before TestPyPI: bring every documentation surface in line
@@ -347,8 +358,20 @@ Package : <name>
 Version : <new_version>
 URL     : https://test.pypi.org/project/<name>/<new_version>/
 
-Test it locally with:
-  pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ <name>==<new_version>
+Test it locally **in an isolated sandbox** — never over the installed copy:
+
+```powershell
+$dir = "$env:USERPROFILE\.sandbox\<name>\<new_version>"
+uv venv $dir
+$url = (Invoke-RestMethod "https://test.pypi.org/pypi/<name>/<new_version>/json").urls |
+       Where-Object { $_.filename -like "*.whl" } | Select-Object -First 1 -Expand url
+uv pip install --python "$dir\Scripts\python.exe" --refresh $url
+& "$dir\Scripts\<entrypoint>.exe" --version
+```
+
+Install by **wheel URL**, not by package name: uv's dependency-confusion guard refuses a version that only
+exists on the sandbox index when real PyPI already has the package. Full process: the
+`release-sandbox-verification` skill.
 
 > **Pitfall: TestPyPI has no dependency index.** TestPyPI does not mirror PyPI's
 > dependency packages. When installing from TestPyPI for smoke-testing, always
@@ -597,6 +620,21 @@ When the package is ready for public use, un-yank the latest version:
 
 > **Recommendation:** Always yank, never delete. Releases are cheap — deleting
 > creates permanent problems for no gain.
+
+## Windows / PowerShell invocation rules
+
+Release commands are frequently written POSIX-style and then fail on the user's Windows shell. Use these forms:
+
+| Situation | Correct form |
+|---|---|
+| Path built from a variable | `& "$env:USERPROFILE\.sandbox\pkg\1.2.3\Scripts\app.exe" --version` — quote it **and** prefix `&` |
+| Relative path | `cd <dir>` then `.\app.exe --version` |
+| Argument for a **native** tool (python, git, node) | Pass `C:/Users/...` forward-slash paths — MSYS `/d/...` paths are **not** translated (`FileNotFoundError`) |
+| `uv pip install` with no active venv | Fails by design — pass `--python <venv>\Scripts\python.exe`, or create the venv first |
+| Long upload / interactive prompt risk | `--non-interactive` + explicit `TWINE_USERNAME`/`TWINE_PASSWORD` so the tool never blocks on stdin |
+
+Tokens: `psamvault ak-get <key>` prints a **masked** table, not a value — use `--copy` and read the clipboard
+into a temp env file with a script. Never `echo` a PyPI token (they contain `***`, which shell-globs).
 
 ## Common Pitfalls
 
