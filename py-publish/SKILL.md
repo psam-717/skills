@@ -361,12 +361,22 @@ URL     : https://test.pypi.org/project/<name>/<new_version>/
 Test it locally **in an isolated sandbox** — never over the installed copy:
 
 ```powershell
+# Windows (PowerShell)
 $dir = "$env:USERPROFILE\.sandbox\<name>\<new_version>"
 uv venv $dir
 $url = (Invoke-RestMethod "https://test.pypi.org/pypi/<name>/<new_version>/json").urls |
        Where-Object { $_.filename -like "*.whl" } | Select-Object -First 1 -Expand url
 uv pip install --python "$dir\Scripts\python.exe" --refresh $url
 & "$dir\Scripts\<entrypoint>.exe" --version
+```
+
+```bash
+# macOS / Linux (bash, zsh)
+dir="$HOME/.sandbox/<name>/<new_version>"
+uv venv "$dir"
+url=$(curl -s https://test.pypi.org/pypi/<name>/<new_version>/json | python -c "import json,sys;[print(u['url']) for u in json.load(sys.stdin)['urls'] if u['filename'].endswith('.whl')][0]")
+uv pip install --python "$dir/bin/python" --refresh "$url"
+"$dir/bin/<entrypoint>" --version
 ```
 
 Install by **wheel URL**, not by package name: uv's dependency-confusion guard refuses a version that only
@@ -621,17 +631,23 @@ When the package is ready for public use, un-yank the latest version:
 > **Recommendation:** Always yank, never delete. Releases are cheap — deleting
 > creates permanent problems for no gain.
 
-## Windows / PowerShell invocation rules
+## Shell rules — Windows · macOS · Linux
 
-Release commands are frequently written POSIX-style and then fail on the user's Windows shell. Use these forms:
+Release commands are frequently written POSIX-style and then fail on a Windows shell (or vice versa). Same
+intent, different syntax — plus one genuine platform difference.
 
-| Situation | Correct form |
-|---|---|
-| Path built from a variable | `& "$env:USERPROFILE\.sandbox\pkg\1.2.3\Scripts\app.exe" --version` — quote it **and** prefix `&` |
-| Relative path | `cd <dir>` then `.\app.exe --version` |
-| Argument for a **native** tool (python, git, node) | Pass `C:/Users/...` forward-slash paths — MSYS `/d/...` paths are **not** translated (`FileNotFoundError`) |
-| `uv pip install` with no active venv | Fails by design — pass `--python <venv>\Scripts\python.exe`, or create the venv first |
-| Long upload / interactive prompt risk | `--non-interactive` + explicit `TWINE_USERNAME`/`TWINE_PASSWORD` so the tool never blocks on stdin |
+| Situation | Windows (PowerShell) | macOS / Linux (bash, zsh) |
+|---|---|---|
+| Path built from a variable | `& "$env:USERPROFILE\.sandbox\pkg\1.2.3\Scripts\app.exe" --version` — quote it **and** prefix `&` | `"$HOME/.sandbox/pkg/1.2.3/bin/app" --version` |
+| Relative path | `cd <dir>` then `.\app.exe --version` | `cd <dir>` then `./app --version` |
+| venv layout | `Scripts\python.exe` | `bin/python` |
+| pipx venv root | `$env:LOCALAPPDATA\pipx\pipx\venvs` | `$(pipx environment --value PIPX_LOCAL_VENVS)` (default `~/.local/pipx/venvs`) |
+| Native tools (python, git, node) | pass `C:/...` forward-slash paths — MSYS `/d/...` paths are NOT translated (`FileNotFoundError`) | native paths work as-is |
+| Long upload / prompt risk | `--non-interactive` + explicit `TWINE_USERNAME`/`TWINE_PASSWORD` | same |
+
+**Replacing a running executable:** Windows refuses (`os error 32`) while a file is running or held open, so
+venv-recreating installs fail with live processes; macOS/Linux allow the file to be replaced, so the install
+usually succeeds there — but running processes keep the **old code** either way.
 
 Tokens: `psamvault ak-get <key>` prints a **masked** table, not a value — use `--copy` and read the clipboard
 into a temp env file with a script. Never `echo` a PyPI token (they contain `***`, which shell-globs).
