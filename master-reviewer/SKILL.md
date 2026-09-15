@@ -5,7 +5,7 @@ description: >-
   wait for the user to report that findings were tackled, verify fixes, then
   deepen the next pass. After the third pass is verified, declare merge-ready
   or not. Invokes the agent's built-in /review (or equivalent) skill when
-  available; otherwise reviews for bugs, security, and effectiveness with
+  available; otherwise reviews for bugs, security, and efficiency with
   actionable fix guidance on every finding. Always auto-submits PR reviews
   (never leaves PENDING) and posts verification outcomes both in chat and on
   the PR. Use when the user runs /master-reviewer, asks for a "master review",
@@ -40,6 +40,10 @@ gate.
    outcome must appear **in chat** and **on the GitHub PR** as a submitted
    review (and residual fix guidance when anything is still open), so anyone
    working from the PR alone knows exactly what to do next.
+8. **Bugs first, then efficiency.** Correctness and security remain the main
+   goal. Also raise **efficiency suggestions** when the change wastes a
+   concrete extra step (retry, restart, wrong target, extra scan, duplicate
+   probe). Include those suggestions in that round's verification set.
 
 ## Invocation
 
@@ -164,8 +168,10 @@ If no review skill exists:
       invalid state, broken edge cases)
    2. **Security** (authz/authn, secrets, injection, open webhooks, insecure
       defaults, multi-tenant leaks)
-   3. **Effectiveness & efficiency** (wrong abstraction, N+1, full scans,
-      missing validation, operability, clarity)
+   3. **Effectiveness & efficiency** (wasted operator/agent steps, wrong
+      abstraction, N+1, full scans, duplicate probes, missing validation,
+      operability, clarity) — file as `suggestion` unless it already breaks
+      correctness
 4. Post findings as a GitHub PR review via `gh api` when authenticated with
    **`event: "COMMENT"`** (auto-submitted), with actionable suggestions on
    every item. If posting is impossible, write a clear markdown report in chat
@@ -178,9 +184,30 @@ same shallow pass.
 
 | Round | Name | Focus |
 |------:|------|--------|
-| 1 | **Foundation** | Correctness, security, data integrity, auth, obvious breakage. Catch merge-blockers and high-severity bugs first. |
-| 2 | **Hardening** | Re-verify round-1 fixes; dig into edge cases, error paths, multi-tenant isolation, API contracts, race/consistency, incomplete validation, deploy/config footguns related to the change. |
-| 3 | **Polish & merge-bar** | Re-verify all prior fixes; maintainability, naming consistency with codebase, tests/docs gaps that risk regression, operability (logs, health, env), dead paths, nits that still matter for a clean merge. Be stricter and more thorough than round 2. |
+| 1 | **Foundation** | Correctness, security, data integrity, auth, obvious breakage. Catch merge-blockers and high-severity bugs first. Include an efficiency suggestion only when the wasted path is already user-visible in the diff (dead-end advertised command, extra full scan on a hot path). Do not hunt micro-optimizations. |
+| 2 | **Hardening** | Re-verify round-1 fixes; dig into edge cases, error paths, multi-tenant isolation, API contracts, race/consistency, incomplete validation, deploy/config footguns. **Also hunt efficiency:** duplicate probes, misleading ops that cause extra restarts or session-kills, N+1 / full scans, two discovery paths for the same fact, a slower installer when a cheaper one is already in the PR. |
+| 3 | **Polish & merge-bar** | Re-verify all prior fixes; remaining efficiency that still costs a real extra step; maintainability, naming consistency with codebase, tests/docs gaps that risk regression, operability (logs, health, env), dead paths, nits that still matter for a clean merge. Be stricter and more thorough than round 2. |
+
+## Efficiency suggestions (mandatory, secondary to bugs)
+
+Do not keep a review "bugs only". After bugs and security, file efficiency
+items as `suggestion` unless they already break correctness (then they are
+`bug`).
+
+Count it when you can name the wasted step:
+
+- operator/agent copies a command that no-ops, is refused, or must be retried
+- a message sends them to kill sessions or reinstall when that is not the cause
+- duplicate probes, N+1, full scans, or two discovery paths for the same fact
+- a slower path when a cheaper one is already in the change
+
+Do **not** file style, renaming, or speculative micro-optimizations as
+efficiency. **Why it matters** must name the wasted step; if you cannot, drop
+the finding.
+
+Efficiency suggestions raised in a round belong in **that round's verification
+set**. Pure nits may still carry; efficiency suggestions do not, unless the
+user explicitly carries them.
 
 If a round finds **zero issues**, still post/report a short **submitted** summary
 stating that the round is clean at that depth, then wait for the user before
@@ -191,7 +218,8 @@ continuing (except after final verify—see merge gate).
 For **every** issue in **every** round, include:
 
 1. **What is wrong** (specific, with file and line when possible)
-2. **Why it matters** (user impact, security, correctness, ops)
+2. **Why it matters** (user impact, security, correctness, ops, or the
+   concrete wasted step for an efficiency suggestion)
 3. **Best way to tackle it** — preferred fix path, not a vague "fix this":
    - Preferred approach (concrete)
    - What to avoid (common weak fix)
@@ -275,9 +303,11 @@ prior findings. Outcomes must be dual-channel: **chat + PR**.
    working from the PR can act without reading chat. See
    [Verification review body](#verification-review-body-template) below.
 6. **Advance only if** there are no remaining **bugs** from the prior round
-   (and no partials that still break correctness/security). Pure nits may be
-   carried into the next deeper round if the user wants speed—but default is:
-   **prior bugs must be fixed before the next full review.**
+   (and no partials that still break correctness/security) **and** no remaining
+   **efficiency suggestions** from that round. Pure nits may be carried into
+   the next deeper round if the user wants speed—but default is: **prior bugs
+   and efficiency suggestions must be fixed before the next full review.**
+   The user may explicitly carry efficiency items; do not drop them silently.
 7. If still broken, do not start the next full review; wait again after listing
    what remains and refreshed best-fix guidance **on the PR and in chat**.
 
@@ -329,12 +359,14 @@ changed.
 ### Full review phase (rounds 1–3)
 
 1. Announce: `Master review — Round N/3 (<name>) on PR #…`
-2. Invoke the selected review engine with **round-specific depth** and
-   **suggestion quality** requirements injected into context.
+2. Invoke the selected review engine with **round-specific depth**,
+   **efficiency-suggestion**, and **suggestion quality** requirements injected
+   into context.
 3. For rounds 2–3, also inject:
    - List of prior findings and verify results
    - Instruction: do not re-open items marked Fixed unless still broken;
-     hunt for **new** issues at this deeper level and any regressions
+     hunt for **new** issues at this deeper level (including efficiency) and
+     any regressions
 4. Ensure the review is **published** with `event: COMMENT` (auto-submit).
 5. Summarize in chat: counts, top issues, best-fix highlights, live review
    link, wait prompt. Do not instruct manual GitHub submit.
@@ -346,8 +378,9 @@ changed.
 2. Optionally skim CI (`gh pr checks`) and conflict state
    (`gh pr view --json mergeable,mergeStateStatus`).
 3. Decide:
-   - **MERGE READY** — no open bugs/security issues; remaining nits are
-     optional or none. Explicitly say: **Go ahead and merge.**
+   - **MERGE READY** — no open bugs/security issues and no open efficiency
+     suggestions; remaining nits are optional or none. Explicitly say:
+     **Go ahead and merge.**
    - **NOT MERGE READY** — list blockers with best-fix guidance; stay in
      wait_user until the user tackles again, then re-run merge gate only
      (no fourth full review unless the user asks to restart).
@@ -369,7 +402,8 @@ If the user returns mid-loop (new message after wait):
 
 - No emojis required.
 - Be direct and specific; severity-first ordering (bugs → suggestions → nits).
-- Do not flood with low-value nits in round 1; deepen over rounds.
+- Do not flood with low-value nits in round 1; deepen over rounds. Efficiency
+  suggestions still need a named wasted step — they are not a license to nit.
 - Never modify PR code yourself unless the user separately asks you to fix.
 - Never approve merge after round 1 or 2; only the **merge gate** after
   round 3 verification may say **Go ahead and merge.**
@@ -382,9 +416,9 @@ If the user returns mid-loop (new message after wait):
 - [ ] PR open and identified
 - [ ] Review engine selected (built-in skill preferred)
 - [ ] Round 1 full review **published** (COMMENT, not PENDING) + chat summary + user wait
-- [ ] User tackled → verify → **publish verification on PR** + chat → only then Round 2 if bugs clear
+- [ ] User tackled → verify → **publish verification on PR** + chat → only then Round 2 if bugs and efficiency suggestions clear
 - [ ] Round 2 full review **published** + user wait
-- [ ] User tackled → verify → **publish verification on PR** + chat → only then Round 3 if bugs clear
+- [ ] User tackled → verify → **publish verification on PR** + chat → only then Round 3 if bugs and efficiency suggestions clear
 - [ ] Round 3 full review **published** + user wait
 - [ ] User tackled → final verify → **publish merge gate on PR** + chat → **merge go-ahead or blockers**
 - [ ] Every finding carried a best-fix / avoid / done-when style suggestion
