@@ -189,7 +189,9 @@ line from the release notes when it's the first tag.
 Releases of `psamvault-mcp` must also record themselves in `mcp_server/compatibility.json`
 (mcp version, skill version, `breaking` flag, `added`/`removed`, tool fingerprint) and bump the
 matching skill's `version:` — otherwise the server and its usage skill drift silently, and a tool
-count alone will not reveal it. Verify the pair afterwards with `psamvault-compat --check`.
+count alone will not reveal it. Verify the pair afterwards with `psamvault-mcp compat --check`
+(on 0.5.3+; on older installs call the module directly — `<venv python> -c "from mcp_server.compat
+import main; raise SystemExit(main(['--check']))"` — because the subcommand did not exist yet).
 `tests/test_compat.py` fails when the newest contract entry disagrees with the code's tool surface.
 
 ## Phase 1 — Pre-Release Prep: README + Changelog
