@@ -61,7 +61,8 @@ If **NO** to any → **Loop back**: ask the user a clarifying question before pr
 
 Design what I'll do this cycle:
 
-1. **Identify open decisions** — what design choices are unresolved?
+1. **Identify the frontier** — every decision whose prerequisites are settled. A
+   decision that depends on another still open is *queued*, not asked
 2. **Determine knowledge gaps** — what options do I not fully understand?
 3. **Decide the next action:**
    - *Research* — if I need to learn about an option (search docs, read source, check alternatives)
@@ -182,7 +183,9 @@ skills:
 ## Common Pitfalls
 
 1. **Researching forever** — Limit research to 2 cycles per open decision. If you can't find what you need, ask the user.
-2. **Presenting too many decisions at once** — Max 3 per cycle unless the user asks for the full picture.
+2. **Presenting the wrong questions** — Present the frontier, not the whole tree: a
+   question whose answer depends on an open one belongs to a later cycle. Within a
+   cycle, cap the round at ~5 questions grouped by decision area, shallowest first
 3. **Forgetting to update PLAN.md** — Every decision must be written to the file before the next cycle.
 4. **Not tracking what cycle you're on** — Keep an internal count. At cycle 8, stop and check with the user.
 5. **Ignoring the user's signal to stop** — If the user says "let's just start with option 1", accept it. Don't keep looping for completeness.
