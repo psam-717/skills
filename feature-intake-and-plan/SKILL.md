@@ -42,6 +42,27 @@ Then hands off to `plan` and `subagent-driven-development` for execution.
 
 When the user proposes a feature idea:
 
+#### Step 0: Map the design tree, then compute the frontier
+
+Before writing anything down, model the work as a **design tree**: every decision
+branches into the decisions that hang off it. The **frontier** is every decision
+whose prerequisites are already settled — the questions that can be asked *now*
+without guessing at an answer you have not heard yet.
+
+- Ask the whole frontier. Never ask a question whose answer depends on one that is
+  still open; that question belongs to a **later round**.
+- Recompute the frontier after every round: settled answers push it outward.
+- **Facts are your job, decisions are the user's.** Anything discoverable from the
+  repo, the docs, an installed skill, or the web gets looked up (delegate it if it
+  is big); never spend a round asking the user something you can find. A lookup
+  still running is an unsettled prerequisite, so only the questions downstream of
+  it wait — ask the rest of the frontier now.
+- Track the tree in PLAN.md (open / settled / queued) so the frontier is visible
+  rather than remembered.
+
+Step 1 writes that tree into PLAN.md: the summary, the decisions currently on the
+frontier, and the questions queued behind them.
+
 #### Step 1: Write a structured summary
 
 Create a PLAN.md at the project root (or `hackathon/PLAN.md` if the project has one):
@@ -84,7 +105,19 @@ Create a PLAN.md at the project root (or `hackathon/PLAN.md` if the project has 
 - [ ] Question 2?
 ```
 
-#### Step 2: Present each decision with 3+ choices
+#### Step 2: Ask one round — the frontier, numbered, each with a recommendation
+
+A round is the current frontier presented together and numbered — then **a stop**.
+Do not open the next round, and do not start building, until the user has answered.
+
+- Every question carries **3+ options**, each with what it is, when it makes sense,
+  and the trade-off (the psam convention).
+- Every question carries **your recommendation**, marked inline. Word the question
+  so a bare "yes" accepts it.
+- Cap a round at about five questions, grouped by decision area, shallowest first.
+  If the frontier is larger, say which questions are queued behind these: that is a
+  density limit on presentation, never permission to ask a dependent question early.
+- Answer with a compact table per question, not a paragraph per option.
 
 Structure each choice with what it is, when it makes sense, and the trade-off:
 
@@ -100,16 +133,15 @@ Where should the data live?
 Which approach fits best?
 ```
 
-#### Step 3: Let the user ask questions
+#### Step 3: Close every fact gap, then let the user answer
 
-```
-"These are the key design decisions I see. You can:
-- Pick an option for any decision
-- Ask me questions about the trade-offs
-- Suggest a different approach I hadn't considered
+Before a round goes out, close the fact gaps it exposes: read the file, check the
+installed skill, search the docs, or delegate the lookup. Present decisions only.
+Then close the round with an invitation that covers all three:
 
-What would you like to start with?"
-```
+> These are the key design decisions I see. You can pick an option for any of them,
+> ask about the trade-offs, or suggest an approach I had not considered. What would
+> you like to start with?
 
 ### Phase 2: Collaborative Planning
 
@@ -182,20 +214,40 @@ When confirmed, load and follow:
 - **Always present multiple choices** — 3+ options help the user see trade-offs they hadn't considered
 - **Update PLAN.md immediately** — Every decision goes in right away, not batch-updated later
 - **Let the user drive** — Present options and trade-offs, recommend when asked, but the user decides
+- **Facts are yours, decisions are the user's** — look up anything the environment
+  can answer rather than making the user your search engine
+- **One round at a time** — the frontier goes out numbered, with a recommendation per
+  question, and then you wait; questions downstream of an open answer belong to the
+  next round
+- **Done is mechanical** — intake ends when the frontier is empty: every branch of the
+  design tree visited, nothing silently assumed, and the user confirms the shared
+  understanding. "All decisions resolved" is not a test; an empty frontier is
 - **Document rejected alternatives** — Note what was rejected and why, prevents re-litigation
 - **Respect existing architecture** — Prefer solutions aligned with project patterns over new frameworks
+- **Ship the asked-for scope; extras stay visibly optional** — when an agreed sentence carries an
+  optional add-on ("and optionally a <second destination>"), implement the core as the deliverable and
+  either leave the add-on switchable or name it as extra when you report. Silently folding it in makes
+  the user audit something they never asked for.
+- **A question is not a change request** — "why is X included?" asks for the reason, nothing more.
+  Reply with the reason and stop; never flip behaviour, disable a feature, or open a patch on the
+  strength of a question. Wait for an instruction.
 
 ## Common Pitfalls
 
 1. **Yes/no questions** — Always provide 3+ options with pros/cons
-2. **Dumping all decisions at once** — Present 2-3 decisions at a time
-3. **Ignoring implementation cost** — Include estimated effort for each option
-4. **Skipping the PLAN.md update** — The file is the source of truth
-5. **Moving to build too early** — All decisions should be resolved first
-6. **Vague PLAN.md** — Must have exact file paths, test targets, acceptance criteria
+2. **Asking the whole tree at once** — Ask the *frontier* only: a question whose
+   answer depends on an open one belongs to the next round. Dependency sets the
+   order; density is only a presentation cap (~5 per round, grouped)
+3. **Being the user's search engine** — a question you could have answered by reading
+   the repo, a skill, or a doc is a wasted round
+4. **Ignoring implementation cost** — Include estimated effort for each option
+5. **Skipping the PLAN.md update** — The file is the source of truth
+6. **Moving to build too early** — The frontier must be empty first, not "most decisions done"
+7. **Vague PLAN.md** — Must have exact file paths, test targets, acceptance criteria
 
 ## Verification Checklist
 
+- [ ] Frontier is empty: every branch of the design tree visited, nothing silently assumed
 - [ ] PLAN.md created with summary and key decisions
 - [ ] Each decision has 3+ options with pros/cons
 - [ ] User invited to ask questions or pick options
