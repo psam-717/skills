@@ -162,6 +162,10 @@ bundled "review" skill that posts GitHub PR reviews):
 If no review skill exists:
 
 1. Fetch the PR diff with `gh pr diff` and metadata with `gh pr view`.
+   Pin the fixed point to the PR's base (`baseRefOid`), never `HEAD~n`; confirm
+   `git rev-parse <base>` resolves and the diff is non-empty before reviewing.
+   Fetch the spec (`Fixes #N` -> `gh issue view N`) up front: the Spec axis
+   cannot run later without it.
 2. Read changed files and surrounding call sites.
 3. Review with this priority order:
    1. **Correctness / bugs** (logic errors, bad defaults, race conditions,
@@ -177,6 +181,34 @@ If no review skill exists:
    every item. If posting is impossible, write a clear markdown report in chat
    with the same structure and note that the PR could not be updated.
 
+## Review axes (both apply in every round)
+
+Two questions, answered separately, never merged:
+
+- **Standards** — does the diff follow this repo's documented coding standards, plus
+  the fixed smell baseline in [references/smell-baseline.md](references/smell-baseline.md)?
+  Sources: `CONTRIBUTING.md`, `CODING_STANDARDS.md`, ADRs, and any other file that
+  documents how code should be written. Skip anything tooling already enforces (eslint,
+  ruff, the repo's own ratchets).
+- **Spec** — does the diff faithfully implement the originating issue/spec? Resolve the
+  spec in this order: `Fixes #N` in the PR body or commit messages -> a path the user
+  passed -> a spec file under `docs/`, `specs/`, `.scratch/` -> ask. With no spec at
+  all, the Spec axis reports "no spec available" in the round summary; never infer
+  intent from the diff itself.
+
+Report them under separate headings, and do not rerank a Standards finding against a
+Spec finding. A change can follow every convention and implement the wrong thing
+(Standards pass, Spec fail), or do exactly what the issue asked while breaking house
+style (Spec pass, Standards fail). Collapsing the two hides one behind the other.
+
+Both axes mix hard breaches with judgement: a documented repo rule is a hard finding,
+while a baseline smell is always a labelled heuristic ("possible Feature Envy") that the
+repo's documented practice overrides.
+
+The round ladder below decides **severity and depth** (Foundation -> Hardening ->
+Polish); the axes decide **what is being judged**. They compose: Round 1 normally carries
+the Spec axis plus correctness, and Round 3 is where the Standards axis and the smell
+baseline get their full pass.
 ## Round depth ladder (mandatory)
 
 Each full review must be **deeper** than the previous one. Do not repeat the
